@@ -1,0 +1,1026 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RoR2 RunReport Viewer V2</title>
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --panel:#0f1624;
+      --panel2:#0c1320;
+      --text:#e8eefc;
+      --muted:#9fb0d0;
+      --border:#1f2a40;
+      --accent:#6ea8ff;
+      --good:#5dff9b;
+      --bad:#ff6b6b;
+      --warn:#ffcc66;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background: radial-gradient(1200px 600px at 20% -10%, rgba(110,168,255,.18), transparent 60%),
+                  radial-gradient(900px 500px at 110% 10%, rgba(155,255,208,.12), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    header{
+      position:sticky;
+      top:0;
+      z-index:10;
+      backdrop-filter: blur(10px);
+      background: rgba(11,15,23,.75);
+      border-bottom:1px solid var(--border);
+    }
+    .wrap{max-width:1200px;margin:0 auto;padding:16px}
+    .top{display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;}
+    .brand{display:flex; gap:12px; align-items:center;}
+    .logo{
+      width:40px; height:40px; border-radius:12px;
+      background: linear-gradient(135deg, rgba(110,168,255,.9), rgba(155,255,208,.75));
+      box-shadow: var(--shadow);
+    }
+    h1{font-size:16px;margin:0}
+    .sub{font-size:12px;color:var(--muted);margin-top:2px}
+    .actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .btn{
+      appearance:none; border:1px solid var(--border); background:var(--panel);
+      color:var(--text); padding:10px 12px; border-radius:12px; cursor:pointer;
+      box-shadow: 0 6px 16px rgba(0,0,0,.25);
+      font-weight:600; font-size:13px;
+    }
+    .btn:hover{border-color:rgba(110,168,255,.45)}
+    input[type="file"]{display:none}
+    .pill{
+      padding:8px 10px; border:1px solid var(--border); border-radius:999px;
+      background:rgba(15,22,36,.6); color:var(--muted); font-size:12px;
+    }
+
+    main .wrap{padding-top:18px;padding-bottom:32px}
+    .grid{display:grid; grid-template-columns: 1.1fr .9fr; gap:14px;}
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+
+    .card{
+      background: linear-gradient(180deg, rgba(15,22,36,.95), rgba(12,19,32,.95));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card h2{
+      margin:0;
+      padding:14px 14px 10px 14px;
+      font-size:13px;
+      letter-spacing:.2px;
+      color:var(--text);
+      border-bottom:1px solid rgba(31,42,64,.7);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .card .body{padding:14px}
+
+    .drop{
+      border:1px dashed rgba(110,168,255,.5);
+      background: rgba(110,168,255,.08);
+      border-radius: var(--radius);
+      padding:16px;
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
+    }
+    .drop strong{font-size:13px}
+    .drop span{color:var(--muted); font-size:12px}
+    .drop.ok{border-color:rgba(93,255,155,.55); background: rgba(93,255,155,.08)}
+    .drop.bad{border-color:rgba(255,107,107,.55); background: rgba(255,107,107,.08)}
+    .hint{color:var(--muted); font-size:12px; margin-top:10px}
+
+    .kvs{display:grid; grid-template-columns: 1fr 2fr; gap:10px 12px; align-items:start;}
+    .kvs .k{color:var(--muted); font-size:12px}
+    .kvs .v{font-size:13px; word-break:break-word}
+    .mono{font-family:var(--mono)}
+
+    .tabs{
+      display:flex; gap:8px; flex-wrap:wrap;
+      padding:12px 14px;
+      border-bottom:1px solid rgba(31,42,64,.7);
+      background: rgba(11,15,23,.35);
+    }
+    .tab{
+      border:1px solid var(--border);
+      background: rgba(15,22,36,.8);
+      color: var(--muted);
+      padding:8px 10px;
+      border-radius: 999px;
+      font-size:12px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .tab.active{
+      color: var(--text);
+      border-color: rgba(110,168,255,.55);
+      box-shadow: 0 6px 16px rgba(0,0,0,.25);
+    }
+
+    .twoCols{display:grid; grid-template-columns: 1fr 1fr; gap:12px;}
+    @media (max-width: 680px){ .twoCols{grid-template-columns:1fr} }
+
+    .codebox{
+      border:1px solid rgba(31,42,64,.8);
+      background: rgba(10,14,22,.65);
+      border-radius:12px;
+      padding:10px 12px;
+      font-family:var(--mono);
+      font-size:12px;
+      color: rgba(232,238,252,.9);
+      max-height:260px;
+      overflow:auto;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      overflow:hidden;
+      border:1px solid rgba(31,42,64,.7);
+      border-radius: 12px;
+    }
+    th, td{
+      text-align:left;
+      padding:10px 10px;
+      border-bottom:1px solid rgba(31,42,64,.55);
+      font-size:13px;
+    }
+    th{color:var(--muted); font-size:12px; background: rgba(11,15,23,.35)}
+    tr:hover td{background: rgba(110,168,255,.06)}
+    .right{text-align:right}
+
+    .searchRow{display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:10px;}
+    .search{
+      flex:1;
+      min-width:220px;
+      border:1px solid var(--border);
+      background: rgba(12,19,32,.75);
+      color: var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      outline:none;
+    }
+    .small{font-size:12px;color:var(--muted)}
+
+    .selector{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .selGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width: 900px){ .selGrid{grid-template-columns:1fr} }
+    .group{
+      border:1px solid rgba(31,42,64,.7);
+      border-radius:12px;
+      background: rgba(11,15,23,.25);
+      padding:12px;
+    }
+    .groupTitle{font-size:12px;color:var(--muted);margin:0 0 10px 0}
+    .opt{
+      display:flex; gap:10px; align-items:flex-start;
+      padding:8px 8px;
+      border-radius:10px;
+    }
+    .opt:hover{background: rgba(110,168,255,.06)}
+    .opt input{margin-top:2px}
+    .opt .lbl{font-size:13px}
+    .opt .key{font-size:12px;color:var(--muted);font-family:var(--mono)}
+    .rowBtns{display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:flex-end}
+    .note{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>RoR2 RunReport Viewer</h1>
+          <div class="sub">Modulare Stats, RoR2 Panel Export als PNG</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <label class="btn" for="file">XML auswählen</label>
+        <input id="file" type="file" accept=".xml,text/xml,application/xml" />
+        <button class="btn" id="loadSample">Beispiel laden</button>
+        <span class="pill" id="status">Kein XML geladen</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div id="drop" class="drop" tabindex="0" aria-label="Dropzone">
+      <div>
+        <strong>Zieh deine RunReport XML hier rein</strong><br />
+        <span>Alles bleibt lokal im Browser, kein Upload.</span>
+      </div>
+      <span class="pill" id="dropLabel">Bereit</span>
+    </div>
+
+    <div class="hint">
+      Ziel: Du wählst Stats aus. Du exportierst ein RoR2 Style Stats Panel als PNG.
+    </div>
+
+    <div style="height:14px"></div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>
+          Run Overview
+          <span class="small" id="runTitle">Keine Daten</span>
+        </h2>
+        <div class="body">
+          <div class="kvs" id="overview"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>
+          Player
+          <span class="small" id="playerTitle">Keine Daten</span>
+        </h2>
+        <div class="body">
+          <div class="kvs" id="player"></div>
+        </div>
+      </section>
+
+      <section class="card" style="grid-column:1/-1">
+        <div class="tabs">
+          <div class="tab active" data-tab="stats">Stats</div>
+          <div class="tab" data-tab="select">Auswahl</div>
+          <div class="tab" data-tab="rules">RuleBook</div>
+          <div class="tab" data-tab="raw">Raw XML</div>
+        </div>
+
+        <div class="body">
+          <div id="tab-stats">
+            <div class="searchRow">
+              <input class="search" id="statsSearch" placeholder="Stats filtern, z.B. totalDamageDealt" />
+              <div class="rowBtns">
+                <button class="btn" id="exportPng">Export PNG</button>
+                <span class="small" id="statsCount"></span>
+              </div>
+            </div>
+
+            <div style="overflow:auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Stat</th>
+                    <th class="right">Value</th>
+                  </tr>
+                </thead>
+                <tbody id="statsTable"></tbody>
+              </table>
+            </div>
+
+            <div style="height:12px"></div>
+            <div class="note">
+              Export rendert ein eigenes SVG Panel. Du bekommst ein sauberes PNG, ohne UI Elemente.
+            </div>
+          </div>
+
+          <div id="tab-select" style="display:none">
+            <div class="selector">
+              <div class="twoCols">
+                <div class="note">
+                  Du kannst hier festlegen, welche Stats im Table und im PNG Export auftauchen.
+                  Die Auswahl bleibt in deinem Browser gespeichert.
+                </div>
+                <div class="rowBtns">
+                  <button class="btn" id="selectMinimum">Minimum</button>
+                  <button class="btn" id="selectRecommended">Empfohlen</button>
+                  <button class="btn" id="selectAll">Alle</button>
+                  <button class="btn" id="selectNone">Keine</button>
+                </div>
+              </div>
+
+              <div class="selGrid" id="selectorHost"></div>
+            </div>
+          </div>
+
+          <div id="tab-rules" style="display:none">
+            <div class="note" style="margin-bottom:10px">
+              RuleBook ist häufig lang. Hier ist es nach Prefix gruppiert.
+            </div>
+            <div id="rulesBlocks" class="twoCols"></div>
+          </div>
+
+          <div id="tab-raw" style="display:none">
+            <div class="codebox" id="rawXml"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script>
+  const el = (id) => document.getElementById(id);
+
+  const state = {
+    raw: "",
+    doc: null,
+    statsMap: new Map(),
+    visibleKeys: new Set(),
+    ruleGroups: {},
+    meta: {
+      difficulty: "",
+      ending: "",
+      runGuid: "",
+      playerName: "",
+      bodyName: ""
+    }
+  };
+
+  const STORAGE_KEY = "ror2_stats_visible_v1";
+
+  function safeText(v){ return (v ?? "").toString().trim(); }
+
+  function textOf(node, selector){
+    const n = node ? node.querySelector(selector) : null;
+    return n ? safeText(n.textContent) : "";
+  }
+
+  function toNumberMaybe(v){
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function formatInt(v){
+    const n = toNumberMaybe(v);
+    if (n === null) return v;
+    return Math.round(n).toLocaleString("en-US");
+  }
+
+  function formatSeconds(sec){
+    const s = toNumberMaybe(sec);
+    if (s === null) return sec;
+    const total = Math.max(0, Math.floor(s));
+    const hh = String(Math.floor(total / 3600)).padStart(2, "0");
+    const mm = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+    const ss = String(total % 60).padStart(2, "0");
+    return hh + ":" + mm + ":" + ss;
+  }
+
+  function kvRow(key, value, mono=false){
+    const k = document.createElement("div");
+    k.className = "k";
+    k.textContent = key;
+
+    const v = document.createElement("div");
+    v.className = "v" + (mono ? " mono" : "");
+    v.textContent = value || "n/a";
+
+    return [k, v];
+  }
+
+  function setStatus(kind, msg){
+    el("status").textContent = msg;
+    el("drop").classList.remove("ok", "bad");
+
+    if (kind === "ok"){
+      el("drop").classList.add("ok");
+      el("dropLabel").textContent = "Geladen";
+    } else if (kind === "bad"){
+      el("drop").classList.add("bad");
+      el("dropLabel").textContent = "Fehler";
+    } else {
+      el("dropLabel").textContent = "Bereit";
+    }
+  }
+
+  function parseRuleBook(ruleBookText){
+    const groups = {};
+    const tokens = (ruleBookText || "").split(/\s+/).filter(Boolean);
+    for (const t of tokens){
+      const parts = t.split(".");
+      if (parts.length < 2){
+        (groups["Other"] ||= []).push(t);
+        continue;
+      }
+      const group = parts[0];
+      const rest = parts.slice(1).join(".");
+      (groups[group] ||= []).push(rest);
+    }
+    return groups;
+  }
+
+  // Mindest-Stats wie im Screenshot
+  const MINIMUM_KEYS = [
+    "totalTimeAlive",
+    "totalKills",
+    "totalMinionKills",
+    "deaths",
+    "totalDamageDealt",
+    "totalMinionDamageDealt",
+    "highestDamageDealt",
+    "totalDamageTaken",
+    "highestLevel",
+    "totalGoldCollected",
+    "totalItemsCollected",
+    "totalStagesCompleted",
+    "totalPurchases"
+  ];
+
+  // Empfohlen: Minimum plus sinnvolle zusätzliche Werte (wenn vorhanden)
+  const RECOMMENDED_KEYS = [
+    ...MINIMUM_KEYS,
+    "totalHealthHealed",
+    "totalDronesPurchased",
+    "totalEliteKills",
+    "totalTeleporterBossKillsWitnessed",
+    "maxGoldCollected",
+    "highestItemsCollected",
+    "highestStagesCompleted",
+    "highestPurchases",
+    "totalGoldPurchases",
+    "totalBloodPurchases"
+  ];
+
+  const STAT_CATALOG = [
+    { group: "Core", key: "totalTimeAlive", label: "Time Alive", fmt: formatSeconds, points: true },
+    { group: "Core", key: "totalKills", label: "Kills", fmt: formatInt, points: true },
+    { group: "Core", key: "totalMinionKills", label: "Minion Kills", fmt: formatInt, points: true },
+    { group: "Core", key: "deaths", label: "Deaths", fmt: formatInt, points: true },
+
+    { group: "Damage", key: "totalDamageDealt", label: "Damage Dealt", fmt: formatInt, points: true },
+    { group: "Damage", key: "totalMinionDamageDealt", label: "Minion Damage Dealt", fmt: formatInt, points: true },
+    { group: "Damage", key: "highestDamageDealt", label: "Most Damage Dealt", fmt: formatInt, points: true },
+    { group: "Damage", key: "totalDamageTaken", label: "Damage Taken", fmt: formatInt, points: true },
+
+    { group: "Progress", key: "highestLevel", label: "Highest Level", fmt: formatInt, points: true },
+    { group: "Progress", key: "totalStagesCompleted", label: "Stages Completed", fmt: formatInt, points: true },
+
+    { group: "Economy", key: "totalGoldCollected", label: "Gold Collected", fmt: formatInt, points: true },
+    { group: "Economy", key: "maxGoldCollected", label: "Max Gold Collected", fmt: formatInt, points: true },
+    { group: "Economy", key: "totalPurchases", label: "Purchases", fmt: formatInt, points: true },
+    { group: "Economy", key: "highestPurchases", label: "Highest Purchases", fmt: formatInt, points: true },
+    { group: "Economy", key: "totalGoldPurchases", label: "Gold Purchases", fmt: formatInt, points: true },
+    { group: "Economy", key: "totalBloodPurchases", label: "Blood Purchases", fmt: formatInt, points: true },
+
+    { group: "Loot", key: "totalItemsCollected", label: "Items Collected", fmt: formatInt, points: true },
+    { group: "Loot", key: "highestItemsCollected", label: "Highest Items Collected", fmt: formatInt, points: true },
+
+    { group: "Extras", key: "totalHealthHealed", label: "Health Healed", fmt: formatInt, points: true },
+    { group: "Extras", key: "totalEliteKills", label: "Elite Kills", fmt: formatInt, points: true },
+    { group: "Extras", key: "totalDronesPurchased", label: "Drones Purchased", fmt: formatInt, points: true },
+    { group: "Extras", key: "totalTeleporterBossKillsWitnessed", label: "Teleporter Boss Kills", fmt: formatInt, points: true }
+  ];
+
+  function buildStatsMapFromXml(){
+    state.statsMap.clear();
+
+    const playerInfo = state.doc.querySelector("playerInfos > PlayerInfo");
+    const fieldNodes = playerInfo ? playerInfo.querySelectorAll("statSheet > fields > *") : [];
+
+    for (const n of fieldNodes){
+      state.statsMap.set(n.tagName, safeText(n.textContent));
+    }
+
+    // deaths gibt es oft nicht als field, also aus isDead ableiten ist nicht korrekt.
+    // Wir lassen deaths nur stehen, wenn XML es liefert.
+    // Wenn du es erzwingen willst, kannst du hier optional 0 setzen.
+  }
+
+  function loadVisibleKeys(){
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    try{
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr.map(String));
+    } catch {}
+    return null;
+  }
+
+  function saveVisibleKeys(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(state.visibleKeys)));
+  }
+
+  function ensureDefaultVisible(){
+    const stored = loadVisibleKeys();
+    if (stored){
+      state.visibleKeys = stored;
+      return;
+    }
+    state.visibleKeys = new Set(RECOMMENDED_KEYS);
+    saveVisibleKeys();
+  }
+
+  function renderOverviewAndPlayer(){
+    const root = state.doc.querySelector("RunReport");
+    const playerInfo = state.doc.querySelector("playerInfos > PlayerInfo");
+
+    const overview = el("overview");
+    overview.innerHTML = "";
+
+    const gameModeName = textOf(root, "gameModeName");
+    const gameEnding = textOf(root, "gameEnding");
+    const runGuid = textOf(root, "runGuid");
+    const ruleBook = textOf(root, "ruleBook");
+    const difficulty = (ruleBook.match(/Difficulty\.[A-Za-z0-9_]+/) || [""])[0].replace("Difficulty.","");
+
+    state.meta.difficulty = difficulty || "";
+    state.meta.ending = gameEnding || "";
+    state.meta.runGuid = runGuid || "";
+
+    el("runTitle").textContent = gameModeName || "Run";
+
+    const ov = [
+      ["Difficulty", difficulty || "n/a"],
+      ["Ending", gameEnding || "n/a"],
+      ["Run GUID", runGuid || "n/a"],
+      ["Seed", textOf(root, "seed") || "n/a"],
+      ["Snapshot RunTime", formatSeconds(textOf(root, "snapshotRunTime")) || "n/a"],
+      ["Stopwatch", formatSeconds(textOf(root, "runStopwatchValue")) || "n/a"]
+    ];
+
+    for (const [k,v] of ov){
+      const [a,b] = kvRow(k, v, k.includes("GUID"));
+      overview.appendChild(a);
+      overview.appendChild(b);
+    }
+
+    const player = el("player");
+    player.innerHTML = "";
+
+    const name = textOf(playerInfo, "name");
+    const bodyName = textOf(playerInfo, "bodyName");
+
+    state.meta.playerName = name || "";
+    state.meta.bodyName = bodyName || "";
+
+    el("playerTitle").textContent = name || "Player";
+
+    const pv = [
+      ["Name", name || "n/a"],
+      ["Survivor", bodyName || "n/a"],
+      ["Profile", textOf(playerInfo, "userProfileFileName") || "n/a"]
+    ];
+
+    for (const [k,v] of pv){
+      const [a,b] = kvRow(k, v, k === "Profile");
+      player.appendChild(a);
+      player.appendChild(b);
+    }
+
+    state.ruleGroups = parseRuleBook(textOf(root, "ruleBook"));
+  }
+
+  function calcPointsApprox(key, rawValue){
+    const v = toNumberMaybe(rawValue);
+    if (v === null) return null;
+
+    // Exakte Punktelogik aus dem Game UI ist nicht öffentlich stabil.
+    // Hier eine sinnvolle Approx, damit die rechte Spalte im Export konsistent wirkt.
+    // Du kannst später exakt nachbauen, wenn du die Score Formel in deinem Mod verfügbar machst.
+    const k = key.toLowerCase();
+
+    if (k.includes("kill") && !k.includes("time")) return Math.round(v * 10);
+    if (k.includes("damage") && (k.includes("dealt") || k.includes("taken"))) return Math.round(v / 100);
+    if (k.includes("gold")) return Math.round(v);
+    if (k.includes("item")) return Math.round(v * 110);
+    if (k.includes("stage")) return Math.round(v * 100);
+    if (k.includes("level")) return Math.round(v * 100);
+    if (k.includes("purchase")) return Math.round(v * 35);
+    if (k.includes("timealive")) return Math.round(v * 10);
+    if (k.includes("healed")) return Math.round(v / 10);
+
+    return Math.round(v);
+  }
+
+  function getVisibleStatRows(filterText){
+    const f = (filterText || "").toLowerCase();
+
+    const rows = STAT_CATALOG
+      .filter(s => state.visibleKeys.has(s.key))
+      .filter(s => {
+        const hasValue = state.statsMap.has(s.key);
+        return hasValue;
+      })
+      .filter(s => {
+        if (!f) return true;
+        return s.key.toLowerCase().includes(f) || s.label.toLowerCase().includes(f);
+      })
+      .map(s => {
+        const raw = state.statsMap.get(s.key);
+        const value = s.fmt ? s.fmt(raw) : raw;
+        const pts = s.points ? calcPointsApprox(s.key, raw) : null;
+        return { ...s, raw, value, pts };
+      });
+
+    return rows;
+  }
+
+  function renderStatsTable(filterText){
+    const tbody = el("statsTable");
+    tbody.innerHTML = "";
+
+    const rows = getVisibleStatRows(filterText);
+    el("statsCount").textContent = rows.length + " Stats";
+
+    for (const r of rows){
+      const tr = document.createElement("tr");
+
+      const tdK = document.createElement("td");
+      tdK.textContent = r.label;
+      tdK.title = r.key;
+
+      const tdV = document.createElement("td");
+      tdV.className = "right";
+      tdV.textContent = r.value;
+
+      tr.appendChild(tdK);
+      tr.appendChild(tdV);
+      tbody.appendChild(tr);
+    }
+  }
+
+  function renderSelector(){
+    const host = el("selectorHost");
+    host.innerHTML = "";
+
+    const groups = {};
+    for (const s of STAT_CATALOG){
+      (groups[s.group] ||= []).push(s);
+    }
+
+    const groupNames = Object.keys(groups).sort((a,b) => a.localeCompare(b));
+
+    for (const g of groupNames){
+      const box = document.createElement("div");
+      box.className = "group";
+
+      const h = document.createElement("div");
+      h.className = "groupTitle";
+      h.textContent = g;
+
+      box.appendChild(h);
+
+      for (const s of groups[g]){
+        const hasValue = state.statsMap.has(s.key);
+        const row = document.createElement("label");
+        row.className = "opt";
+        row.style.opacity = hasValue ? "1" : ".5";
+
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = state.visibleKeys.has(s.key);
+        cb.disabled = !hasValue;
+
+        cb.addEventListener("change", () => {
+          if (cb.checked) state.visibleKeys.add(s.key);
+          else state.visibleKeys.delete(s.key);
+          saveVisibleKeys();
+          renderStatsTable(el("statsSearch").value);
+        });
+
+        const wrap = document.createElement("div");
+
+        const lbl = document.createElement("div");
+        lbl.className = "lbl";
+        lbl.textContent = s.label;
+
+        const key = document.createElement("div");
+        key.className = "key";
+        key.textContent = s.key;
+
+        wrap.appendChild(lbl);
+        wrap.appendChild(key);
+
+        row.appendChild(cb);
+        row.appendChild(wrap);
+        box.appendChild(row);
+      }
+
+      host.appendChild(box);
+    }
+  }
+
+  function renderRules(){
+    const host = el("rulesBlocks");
+    host.innerHTML = "";
+
+    const keys = Object.keys(state.ruleGroups).sort((a,b) => a.localeCompare(b));
+    for (const k of keys){
+      const card = document.createElement("div");
+      card.className = "card";
+      card.style.boxShadow = "none";
+      card.style.borderRadius = "12px";
+
+      const h = document.createElement("h2");
+      h.textContent = k;
+
+      const body = document.createElement("div");
+      body.className = "body";
+
+      const list = document.createElement("div");
+      list.className = "codebox";
+      list.textContent = state.ruleGroups[k].join("\n");
+
+      body.appendChild(list);
+      card.appendChild(h);
+      card.appendChild(body);
+      host.appendChild(card);
+    }
+  }
+
+  function escapeXml(s){
+    return (s || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&apos;");
+  }
+
+  function buildRor2StatsSvg(rows){
+    // Layout
+    const W = 1600;
+    const pad = 50;
+    const headerH = 110;
+    const rowH = 64;
+    const rowsH = rows.length * rowH;
+    const footerH = 90;
+    const H = pad + headerH + rowsH + footerH + pad;
+
+    // Colors
+    const bg = "#0b0f17";
+    const panel = "#0f1624";
+    const panel2 = "#0c1320";
+    const border = "#1f2a40";
+    const text = "#e8eefc";
+    const muted = "#9fb0d0";
+    const highlight = "#ffdf66";
+
+    const title = "Stats";
+    const difficulty = state.meta.difficulty ? state.meta.difficulty : "n/a";
+    const name = state.meta.playerName ? state.meta.playerName : "n/a";
+    const survivor = state.meta.bodyName ? state.meta.bodyName : "n/a";
+
+    const totalPts = rows.reduce((a,r) => a + (r.pts || 0), 0);
+
+    const leftX = pad + 40;
+    const rightX = W - pad - 40;
+
+    let y = pad;
+
+    const rect = (x,y,w,h,fill,stroke,rx) =>
+      `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+
+    const textEl = (x,y,t,size,fill,anchor,weight) =>
+      `<text x="${x}" y="${y}" font-family="Segoe UI, Roboto, Arial" font-size="${size}" fill="${fill}" text-anchor="${anchor}" font-weight="${weight}">${escapeXml(t)}</text>`;
+
+    const line = (x1,y1,x2,y2,stroke,opacity) =>
+      `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="2" opacity="${opacity}"/>`;
+
+    let svg = "";
+    svg += `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`;
+    svg += `<defs>
+      <linearGradient id="gPanel" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stop-color="${panel}"/>
+        <stop offset="1" stop-color="${panel2}"/>
+      </linearGradient>
+      <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000" flood-opacity="0.35"/>
+      </filter>
+    </defs>`;
+
+    svg += `<rect x="0" y="0" width="${W}" height="${H}" fill="${bg}"/>`;
+
+    const panelX = pad;
+    const panelY = pad;
+    const panelW = W - pad * 2;
+    const panelH = H - pad * 2;
+
+    svg += `<g filter="url(#shadow)">`;
+    svg += rect(panelX, panelY, panelW, panelH, "url(#gPanel)", border, 18);
+
+    // Header bar
+    svg += rect(panelX + 20, panelY + 18, panelW - 40, 64, "#121a2a", border, 14);
+    svg += textEl(W/2, panelY + 62, title, 34, text, "middle", "700");
+
+    // Sub header
+    svg += rect(panelX + 20, panelY + 92, panelW - 40, 54, "#2a2f45", border, 14);
+    svg += textEl(panelX + 44, panelY + 128, difficulty, 22, text, "start", "700");
+    svg += textEl(panelX + 230, panelY + 128, "Player: " + name, 18, muted, "start", "600");
+    svg += textEl(panelX + 560, panelY + 128, "Survivor: " + survivor, 18, muted, "start", "600");
+
+    // Rows
+    let baseY = panelY + 160;
+    for (let i=0; i<rows.length; i++){
+      const r = rows[i];
+      const ry = baseY + i * rowH;
+
+      const stripe = (i % 2 === 0) ? "rgba(0,0,0,0.15)" : "rgba(0,0,0,0.28)";
+      svg += `<rect x="${panelX + 20}" y="${ry}" width="${panelW - 40}" height="${rowH}" fill="${stripe}" />`;
+
+      const labelY = ry + 42;
+      const valueY = ry + 42;
+
+      svg += textEl(leftX, labelY, r.label + ":", 22, text, "start", "700");
+      svg += textEl(leftX + 320, valueY, String(r.value), 22, highlight, "start", "700");
+
+      const ptsText = (r.pts == null) ? "" : (formatInt(r.pts) + " pts.");
+      svg += textEl(rightX, valueY, ptsText, 20, highlight, "end", "700");
+
+      svg += line(panelX + 20, ry + rowH, panelX + panelW - 20, ry + rowH, border, 0.45);
+    }
+
+    // Footer
+    const footerY = baseY + rowsH + 20;
+    svg += rect(panelX + 20, footerY, panelW - 40, 60, "#0c1320", border, 14);
+    svg += textEl(panelX + 70, footerY + 40, "Total", 22, text, "start", "700");
+    svg += textEl(panelX + panelW - 70, footerY + 40, formatInt(totalPts) + " pts.", 24, highlight, "end", "800");
+
+    svg += `</g>`;
+    svg += `</svg>`;
+    return svg;
+  }
+
+  async function exportStatsPng(){
+    if (!state.doc) return;
+
+    const rows = getVisibleStatRows(el("statsSearch").value);
+    if (!rows.length) return;
+
+    const svgText = buildRor2StatsSvg(rows);
+    const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    const img = new Image();
+    img.decoding = "async";
+
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = url;
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+
+    URL.revokeObjectURL(url);
+
+    const pngUrl = canvas.toDataURL("image/png");
+
+    const fileNameParts = [
+      "RoR2_Stats",
+      state.meta.playerName || "Player",
+      state.meta.difficulty || "Difficulty"
+    ].map(s => s.replace(/[^a-z0-9_\-]+/gi, "_")).filter(Boolean);
+
+    const a = document.createElement("a");
+    a.href = pngUrl;
+    a.download = fileNameParts.join("_") + ".png";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  function loadXmlString(xmlString){
+    try{
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xmlString, "application/xml");
+      const parseError = doc.querySelector("parsererror");
+      if (parseError){
+        setStatus("bad", "XML Parsing Fehler");
+        throw new Error(parseError.textContent || "parsererror");
+      }
+
+      state.raw = xmlString;
+      state.doc = doc;
+
+      buildStatsMapFromXml();
+      ensureDefaultVisible();
+
+      el("rawXml").textContent = state.raw || "";
+
+      renderOverviewAndPlayer();
+      renderSelector();
+      renderStatsTable("");
+
+      renderRules();
+
+      setStatus("ok", "XML geladen");
+    } catch (e){
+      console.error(e);
+      setStatus("bad", "Ungültige XML");
+    }
+  }
+
+  function readFile(file){
+    const reader = new FileReader();
+    reader.onload = () => loadXmlString(String(reader.result || ""));
+    reader.onerror = () => setStatus("bad", "Datei konnte nicht gelesen werden");
+    reader.readAsText(file);
+  }
+
+  el("file").addEventListener("change", (ev) => {
+    const f = ev.target.files && ev.target.files[0];
+    if (f) readFile(f);
+  });
+
+  el("loadSample").addEventListener("click", () => {
+    const sample = `<?xml version="1.0" encoding="utf-8"?>
+<RunReport>
+  <version>2</version>
+  <runGuid>23a8e213-a3ed-4b9f-9543-d4f20090fe95</runGuid>
+  <gameModeName>ClassicRun</gameModeName>
+  <gameEnding>MainEnding</gameEnding>
+  <seed>8065697488034646567</seed>
+  <snapshotRunTime>1221.099</snapshotRunTime>
+  <runStopwatchValue>1206.352</runStopwatchValue>
+  <ruleBook>Difficulty.Rainstorm Expansions.DLC1.On</ruleBook>
+  <playerInfos>
+    <PlayerInfo>
+      <name>EX0DIA</name>
+      <bodyName>CommandoBody</bodyName>
+      <isDead>0</isDead>
+      <statSheet>
+        <fields>
+          <totalTimeAlive>1205.88339622505</totalTimeAlive>
+          <totalKills>163</totalKills>
+          <totalMinionKills>26</totalMinionKills>
+          <totalDamageDealt>237472</totalDamageDealt>
+          <totalMinionDamageDealt>20898</totalMinionDamageDealt>
+          <highestDamageDealt>9918</highestDamageDealt>
+          <totalDamageTaken>1686</totalDamageTaken>
+          <totalHealthHealed>15928</totalHealthHealed>
+          <highestLevel>28</highestLevel>
+          <totalGoldCollected>10869</totalGoldCollected>
+          <totalItemsCollected>334</totalItemsCollected>
+          <totalStagesCompleted>6</totalStagesCompleted>
+          <totalPurchases>10</totalPurchases>
+          <totalEliteKills>11</totalEliteKills>
+          <totalDronesPurchased>1</totalDronesPurchased>
+          <totalTeleporterBossKillsWitnessed>12</totalTeleporterBossKillsWitnessed>
+        </fields>
+      </statSheet>
+      <userProfileFileName>360693fc-6da9-4b8e-90d8-355dcc254439</userProfileFileName>
+    </PlayerInfo>
+  </playerInfos>
+</RunReport>`;
+    loadXmlString(sample);
+  });
+
+  el("statsSearch").addEventListener("input", (e) => renderStatsTable(e.target.value));
+  el("exportPng").addEventListener("click", exportStatsPng);
+
+  function applySelection(keys){
+    state.visibleKeys = new Set(keys);
+    saveVisibleKeys();
+    renderSelector();
+    renderStatsTable(el("statsSearch").value);
+  }
+
+  el("selectMinimum").addEventListener("click", () => applySelection(MINIMUM_KEYS));
+  el("selectRecommended").addEventListener("click", () => applySelection(RECOMMENDED_KEYS));
+  el("selectAll").addEventListener("click", () => applySelection(STAT_CATALOG.map(s => s.key)));
+  el("selectNone").addEventListener("click", () => applySelection([]));
+
+  function setTab(name){
+    const tabs = document.querySelectorAll(".tab");
+    tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === name));
+    ["stats","select","rules","raw"].forEach(n => {
+      const pane = el("tab-" + n);
+      if (pane) pane.style.display = (n === name) ? "" : "none";
+    });
+  }
+  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => setTab(t.dataset.tab)));
+
+  // Drag and drop
+  const drop = el("drop");
+  function prevent(e){ e.preventDefault(); e.stopPropagation(); }
+  ["dragenter","dragover","dragleave","drop"].forEach(evt => drop.addEventListener(evt, prevent));
+  drop.addEventListener("drop", (e) => {
+    const files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files[0]) readFile(files[0]);
+  });
+
+  setStatus("idle", "Kein XML geladen");
+</script>
+</body>
+</html>
